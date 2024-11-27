@@ -49,7 +49,9 @@
       position: absolute;
       width: 100%;
       height: 1px;
+      top: 50%;
       left: 0;
+      transform: translateY(-50%)
     }
 
     .barPin {
@@ -72,7 +74,6 @@
     .bar.up .barInner {
       /* background: rgb(178, 45, 45); */
       border: 1px solid rgb(255, 84, 84);
-      ;
       background: #111;
     }
 
@@ -190,7 +191,7 @@
 <body>
   <div id="chart">
     <div class="avr-bar"></div>
-    <div id="count" class="count-down">00:05</div>
+    <div id="count" class="count-down">00:02</div>
     <div id="price_num"></div>
   </div>
   <div class="num-wrap">
@@ -201,8 +202,8 @@
     <button id="setAll">All</button>
   </div>
   <div class="btn_wrap">
-    <button id="buy">buy</button>
-    <button id="sell">sell</button>
+    <button id="buy">매수</button>
+    <button id="sell">매도</button>
   </div>
   <div id="my_wallet">
     <p id="money">
@@ -278,10 +279,10 @@
     })
 
     let candle = {
-      start: 0,
-      end: 0,
-      high: 0,
-      low: 0,
+      start: 1000,
+      end: 1000,
+      high: 1000,
+      low: 1000,
     };
 
     let wallet = {
@@ -310,55 +311,66 @@
       if (current <= 1) current = 1;
       if (current > 5000) current = 5000;
 
-      if (tick === 0) {
-        candle.start = current
-        candle.high = current
-        candle.low = current
-      }
-
       if (candle.high > current) candle.high = current;
       if (candle.low < current) candle.low = current;
 
       tick += 1;
-      if (tick === 50) {
+      if (tick === 300) {
         candle.end = current;
         chart.push(candle);
         drawChart(candle);
 
         candle = {
-          start: 0,
-          end: 0,
-          high: 0,
-          low: 0,
+          start: current,
+          end: current,
+          high: current,
+          low: current,
         }
         tick = 0;
       }
 
-      if (tick % 10 === 0) {
-        count.innerText = `00:0${5 - (tick/10)}`;
+      if (tick === 0 || tick % 100 === 0) {
+        count.innerText = `00:0${2 - (tick/100)}`;
         price_num.innerText = `현재 주가: ${current.toLocaleString()}원`
       }
-    }, 100);
+    }, 10);
 
-    const drawChart = (candel) => {
+    const drawChart = (candle) => {
       const bar = document.createElement('div');
       bar.classList.add('bar');
-      if (candle.start < candel.end) bar.classList.add('up')
+      if (candle.start < candle.end) bar.classList.add('up')
       else bar.classList.add('down')
 
       const barInner = document.createElement('div');
       barInner.classList.add('barInner');
+      const chartMax = 2500;
+      const barAbsGap = Math.abs(candle.start - candle.end);
+      const pinAbsGap = Math.abs(candle.high - candle.low);
 
-      barInner.style.height = `${(Math.abs(candle.start - candle.end))/5}px`
-      barInner.style.bottom = `${candle.start > candel.end ? candle.end/5 - 30 : candle.start/5 - 30 }px`
+      const barDirection = candle.start > candle.end;
+      const pinDirection = candle.high > candle.low;
+
+      const pinStart = 0.5;
+
+      const barHeight = barAbsGap * 100 / chartMax;
+      const pinHeight = pinAbsGap * 100 / chartMax;
+
+      const barStartPosition = barDirection ? candle.end : candle.start;
+      const barTop = (100 - (barStartPosition * 100 / chartMax)) - 10;
+
+      const pinStartPosition = pinDirection ? candle.low : candle.high;
+      const pinTop = (100 - (pinStartPosition * 100 / chartMax)) - 10;
+
+      barInner.style.height = `${barHeight}%`
+      barInner.style.top = `${barTop}%`
 
       const barPin = document.createElement('div');
       barPin.classList.add('barPin');
 
-      barPin.style.height = `${(Math.abs(candle.high - candle.low))/5}px`
+      barPin.style.height = `${pinHeight}%`
+      barPin.style.top = `${pinTop}%`
 
-      barInner.append(barPin);
-      bar.append(barInner);
+      bar.append(barInner, barPin);
 
       document.querySelector('#chart').append(bar);
 
@@ -407,7 +419,13 @@
       document.querySelector('#avr span').innerText = `${wallet.average.toLocaleString()}원`
       document.querySelector('#total span').innerText = `${(wallet.money + wallet.total).toLocaleString()}원`
 
-      document.querySelector('.avr-bar').style.bottom = `${wallet.average/5 - 30}px`
+
+      if (wallet.average !== 0) {
+        const avrBar = wallet.average * 100 / 2500;
+        document.querySelector('.avr-bar').style.top = `${100 - avrBar  - 10}%`
+      } else {
+        document.querySelector('.avr-bar').style.top = `100%`
+      }
     }
 
     renderWallet();
